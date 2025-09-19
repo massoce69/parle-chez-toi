@@ -14,7 +14,291 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          slug: string
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          slug: string
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          slug?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      content: {
+        Row: {
+          age_rating: string | null
+          average_rating: number | null
+          banner_url: string | null
+          cast_members: string[] | null
+          content_type: Database["public"]["Enums"]["content_type"]
+          created_at: string
+          description: string | null
+          director: string | null
+          duration_minutes: number | null
+          genres: string[] | null
+          id: string
+          is_featured: boolean | null
+          is_new: boolean | null
+          metadata: Json | null
+          poster_url: string | null
+          release_year: number | null
+          slug: string
+          status: Database["public"]["Enums"]["content_status"]
+          title: string
+          total_ratings: number | null
+          trailer_url: string | null
+          updated_at: string
+          video_url: string | null
+          view_count: number | null
+        }
+        Insert: {
+          age_rating?: string | null
+          average_rating?: number | null
+          banner_url?: string | null
+          cast_members?: string[] | null
+          content_type: Database["public"]["Enums"]["content_type"]
+          created_at?: string
+          description?: string | null
+          director?: string | null
+          duration_minutes?: number | null
+          genres?: string[] | null
+          id?: string
+          is_featured?: boolean | null
+          is_new?: boolean | null
+          metadata?: Json | null
+          poster_url?: string | null
+          release_year?: number | null
+          slug: string
+          status?: Database["public"]["Enums"]["content_status"]
+          title: string
+          total_ratings?: number | null
+          trailer_url?: string | null
+          updated_at?: string
+          video_url?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          age_rating?: string | null
+          average_rating?: number | null
+          banner_url?: string | null
+          cast_members?: string[] | null
+          content_type?: Database["public"]["Enums"]["content_type"]
+          created_at?: string
+          description?: string | null
+          director?: string | null
+          duration_minutes?: number | null
+          genres?: string[] | null
+          id?: string
+          is_featured?: boolean | null
+          is_new?: boolean | null
+          metadata?: Json | null
+          poster_url?: string | null
+          release_year?: number | null
+          slug?: string
+          status?: Database["public"]["Enums"]["content_status"]
+          title?: string
+          total_ratings?: number | null
+          trailer_url?: string | null
+          updated_at?: string
+          video_url?: string | null
+          view_count?: number | null
+        }
+        Relationships: []
+      }
+      content_categories: {
+        Row: {
+          category_id: string
+          content_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          category_id: string
+          content_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          category_id?: string
+          content_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_categories_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          preferences: Json | null
+          subscription_plan: string | null
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          preferences?: Json | null
+          subscription_plan?: string | null
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          preferences?: Json | null
+          subscription_plan?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          comment: string | null
+          content_id: string
+          created_at: string
+          id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          content_id: string
+          created_at?: string
+          id?: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          content_id?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_favorites: {
+        Row: {
+          content_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          content_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          content_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_favorites_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      watch_history: {
+        Row: {
+          completed: boolean | null
+          content_id: string
+          id: string
+          progress_seconds: number | null
+          user_id: string
+          watched_at: string
+        }
+        Insert: {
+          completed?: boolean | null
+          content_id: string
+          id?: string
+          progress_seconds?: number | null
+          user_id: string
+          watched_at?: string
+        }
+        Update: {
+          completed?: boolean | null
+          content_id?: string
+          id?: string
+          progress_seconds?: number | null
+          user_id?: string
+          watched_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watch_history_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +307,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      content_status: "draft" | "published" | "archived"
+      content_type: "movie" | "series"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +435,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      content_status: ["draft", "published", "archived"],
+      content_type: ["movie", "series"],
+    },
   },
 } as const
