@@ -1,1 +1,12 @@
 project_id = "hoowaqdxwvcfwwvanixo"
+
+[api]
+enabled = true
+port = 54321
+
+[db]
+enabled = true
+port = 54322
+
+[functions.content-analytics]
+verify_jwt = false

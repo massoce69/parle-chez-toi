@@ -1,146 +1,43 @@
 import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
 import { MovieCarousel } from "@/components/MovieCarousel";
-
-// Import movie poster images
-import strangerThings from "@/assets/stranger-things.jpg";
-import witcher from "@/assets/witcher.jpg";
-import ozark from "@/assets/ozark.jpg";
-import wednesday from "@/assets/wednesday.jpg";
-import moneyHeist from "@/assets/money-heist.jpg";
-import theCrown from "@/assets/the-crown.jpg";
-
-// Mock data for movies and series
-const trendingMovies = [
-  {
-    id: "1",
-    title: "Stranger Things",
-    genre: "Sci-Fi, Thriller",
-    year: 2024,
-    rating: 8.7,
-    duration: "4 saisons",
-    image: strangerThings,
-    isNew: true
-  },
-  {
-    id: "2", 
-    title: "The Witcher",
-    genre: "Fantasy, Action",
-    year: 2023,
-    rating: 8.2,
-    duration: "3 saisons",
-    image: witcher,
-    isNew: false
-  },
-  {
-    id: "3",
-    title: "Ozark", 
-    genre: "Crime, Thriller",
-    year: 2023,
-    rating: 8.5,
-    duration: "4 saisons",
-    image: ozark,
-    isNew: false
-  },
-  {
-    id: "4",
-    title: "Wednesday",
-    genre: "Comedy, Horror",
-    year: 2024,
-    rating: 8.1,
-    duration: "2 saisons",
-    image: wednesday,
-    isNew: true
-  },
-  {
-    id: "5",
-    title: "Money Heist",
-    genre: "Crime, Drama",
-    year: 2023,
-    rating: 8.3,
-    duration: "5 saisons",
-    image: moneyHeist,
-    isNew: false
-  },
-  {
-    id: "6",
-    title: "The Crown",
-    genre: "Drama, History",
-    year: 2023,
-    rating: 8.6,
-    duration: "6 saisons",
-    image: theCrown,
-    isNew: false
-  }
-];
-
-const newReleases = [
-  {
-    id: "7",
-    title: "Stranger Things",
-    genre: "Sci-Fi, Thriller",
-    year: 2024,
-    rating: 8.7,
-    duration: "4 saisons",
-    image: strangerThings,
-    isNew: true
-  },
-  {
-    id: "8",
-    title: "Wednesday",
-    genre: "Comedy, Horror", 
-    year: 2024,
-    rating: 8.1,
-    duration: "2 saisons",
-    image: wednesday,
-    isNew: true
-  }
-];
-
-const popularSeries = [
-  {
-    id: "9",
-    title: "The Witcher",
-    genre: "Fantasy, Action",
-    year: 2023, 
-    rating: 8.2,
-    duration: "3 saisons",
-    image: witcher,
-    isNew: false
-  },
-  {
-    id: "10",
-    title: "Ozark",
-    genre: "Crime, Thriller",
-    year: 2023,
-    rating: 8.5,
-    duration: "4 saisons", 
-    image: ozark,
-    isNew: false
-  },
-  {
-    id: "11",
-    title: "Money Heist",
-    genre: "Crime, Drama",
-    year: 2023,
-    rating: 8.3,
-    duration: "5 saisons",
-    image: moneyHeist,
-    isNew: false
-  },
-  {
-    id: "12",
-    title: "The Crown",
-    genre: "Drama, History",
-    year: 2023,
-    rating: 8.6,
-    duration: "6 saisons",
-    image: theCrown,
-    isNew: false
-  }
-];
+import { useTrendingContent, useNewReleases, useContentByType } from "@/hooks/useContent";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
+  const { user } = useAuth();
+  const { data: trendingMovies = [], isLoading: loadingTrending } = useTrendingContent();
+  const { data: newReleases = [], isLoading: loadingNew } = useNewReleases();  
+  const { data: popularSeries = [], isLoading: loadingSeries } = useContentByType('series');
+
+  // Transform database data to match MovieCard interface
+  const transformContent = (content: any[]) => {
+    return content.map(item => ({
+      id: item.id,
+      title: item.title,
+      genre: item.genres?.join(', ') || '',
+      year: item.release_year || 2024,
+      rating: item.average_rating || 0,
+      duration: item.content_type === 'series' ? 
+        `${Math.ceil((item.duration_minutes || 45) / 45)} saisons` : 
+        `${item.duration_minutes || 120} min`,
+      image: item.poster_url || '',
+      isNew: item.is_new || false
+    }));
+  };
+
+  const isLoading = loadingTrending || loadingNew || loadingSeries;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -153,19 +50,19 @@ const Index = () => {
         <div className="space-y-12 py-12">
           <MovieCarousel 
             title="Tendances actuelles"
-            movies={trendingMovies}
+            movies={transformContent(trendingMovies)}
             size="large"
           />
           
           <MovieCarousel 
             title="Nouveautés"
-            movies={newReleases}
+            movies={transformContent(newReleases)}
             size="medium"
           />
           
           <MovieCarousel 
             title="Séries populaires"
-            movies={popularSeries}
+            movies={transformContent(popularSeries)}
             size="medium"
           />
         </div>
