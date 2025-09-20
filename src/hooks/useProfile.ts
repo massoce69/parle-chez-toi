@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
 
 export interface Profile {
   id: string;
@@ -13,8 +14,56 @@ export interface Profile {
   updated_at: string;
 }
 
-// Get user profile
-export const useProfile = (userId?: string) => {
+// Hook for using profile with convenient API
+export const useProfile = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const profileQuery = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data as Profile | null;
+    },
+    enabled: !!user?.id,
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (updates: Partial<Omit<Profile, 'id' | 'user_id' | 'created_at' | 'updated_at'>>) => {
+      if (!user?.id) throw new Error('User not authenticated');
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data as Profile;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+    },
+  });
+
+  return {
+    profile: profileQuery.data,
+    isLoading: profileQuery.isLoading,
+    updateProfile: updateProfileMutation.mutate,
+  };
+};
+
+// Original hooks (kept for backward compatibility)
+export const useProfileQuery = (userId?: string) => {
   return useQuery({
     queryKey: ['profile', userId],
     queryFn: async () => {
@@ -33,7 +82,6 @@ export const useProfile = (userId?: string) => {
   });
 };
 
-// Update profile
 export const useUpdateProfile = () => {
   const queryClient = useQueryClient();
   
@@ -61,7 +109,6 @@ export const useUpdateProfile = () => {
   });
 };
 
-// Create profile (usually called automatically by trigger)
 export const useCreateProfile = () => {
   const queryClient = useQueryClient();
   

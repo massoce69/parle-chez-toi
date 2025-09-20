@@ -1,7 +1,61 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./useAuth";
 
-// Hook to increment view count
+export const useAnalytics = () => {
+  const { user } = useAuth();
+  
+  const incrementView = async (contentId: string) => {
+    if (!contentId) return;
+    
+    try {
+      const { error } = await supabase.functions.invoke('content-analytics', {
+        body: {
+          action: 'increment_view',
+          content_id: contentId,
+          user_id: user?.id
+        }
+      });
+      
+      if (error) {
+        console.error('Error incrementing view:', error);
+      }
+    } catch (error) {
+      console.error('Error calling analytics function:', error);
+    }
+  };
+
+  const getRecommendations = async () => {
+    if (!user?.id) return [];
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('content-analytics', {
+        body: {
+          action: 'get_recommendations',
+          user_id: user.id
+        }
+      });
+      
+      if (error) {
+        console.error('Error getting recommendations:', error);
+        return [];
+      }
+      
+      return data?.recommendations || [];
+    } catch (error) {
+      console.error('Error calling recommendations function:', error);
+      return [];
+    }
+  };
+
+  return {
+    incrementView,
+    getRecommendations
+  };
+};
+
+// Existing hooks (keep them for backward compatibility)
+import { useMutation, useQuery } from '@tanstack/react-query';
+
 export const useIncrementView = () => {
   return useMutation({
     mutationFn: async ({ contentId, userId }: { contentId: string; userId?: string }) => {
@@ -19,7 +73,6 @@ export const useIncrementView = () => {
   });
 };
 
-// Hook to get personalized recommendations
 export const useRecommendations = (userId?: string) => {
   return useQuery({
     queryKey: ['recommendations', userId],
@@ -41,7 +94,6 @@ export const useRecommendations = (userId?: string) => {
   });
 };
 
-// Hook to track viewing analytics
 export const useViewingAnalytics = () => {
   const incrementView = useIncrementView();
 

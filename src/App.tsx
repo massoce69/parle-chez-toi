@@ -9,6 +9,10 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import Search from "./pages/Search";
+import Categories from "./pages/Categories";
+import Profile from "./pages/Profile";
+import ContentDetail from "./pages/ContentDetail";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +27,26 @@ const App = () => (
             <Route path="/" element={
               <ProtectedRoute>
                 <Index />
+              </ProtectedRoute>
+            } />
+            <Route path="/search" element={
+              <ProtectedRoute>
+                <Search />
+              </ProtectedRoute>
+            } />
+            <Route path="/categories" element={
+              <ProtectedRoute>
+                <Categories />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
+            <Route path="/content/:id" element={
+              <ProtectedRoute>
+                <ContentDetail />
               </ProtectedRoute>
             } />
             <Route path="/auth" element={<Auth />} />

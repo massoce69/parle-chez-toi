@@ -61,6 +61,132 @@ export const useContent = () => {
   });
 };
 
+// Get content by ID
+export const useContentById = (id: string) => {
+  return useQuery({
+    queryKey: ['content', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('content')
+        .select('*')
+        .eq('id', id)
+        .eq('status', 'published')
+        .single();
+      
+      if (error) throw error;
+      return data as Content;
+    },
+    enabled: !!id,
+  });
+};
+
+// Search content
+export const useSearchContent = (params: { 
+  query?: string; 
+  genre?: string; 
+  year?: number; 
+  contentType?: 'movie' | 'series' 
+}) => {
+  return useQuery({
+    queryKey: ['search-content', params],
+    queryFn: async () => {
+      let query = supabase
+        .from('content')
+        .select('*')
+        .eq('status', 'published');
+
+      if (params.query) {
+        query = query.ilike('title', `%${params.query}%`);
+      }
+      
+      if (params.genre) {
+        query = query.contains('genres', [params.genre]);
+      }
+      
+      if (params.year) {
+        query = query.eq('release_year', params.year);
+      }
+      
+      if (params.contentType) {
+        query = query.eq('content_type', params.contentType);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as Content[];
+    },
+    enabled: !!(params.query || params.genre || params.year || params.contentType),
+  });
+};
+
+// Get content by genre
+export const useContentByGenre = (params: { 
+  genre?: string; 
+  contentType?: 'movie' | 'series' | '' 
+}) => {
+  return useQuery({
+    queryKey: ['content-by-genre', params],
+    queryFn: async () => {
+      let query = supabase
+        .from('content')
+        .select('*')
+        .eq('status', 'published');
+
+      if (params.genre) {
+        query = query.contains('genres', [params.genre]);
+      }
+      
+      if (params.contentType) {
+        query = query.eq('content_type', params.contentType);
+      }
+
+      const { data, error } = await query.order('average_rating', { ascending: false });
+      
+      if (error) throw error;
+      return data as Content[];
+    },
+    enabled: !!params.genre,
+  });
+};
+
+// Get content reviews
+export const useContentReviews = (contentId: string) => {
+  return useQuery({
+    queryKey: ['content-reviews', contentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select(`
+          *,
+          profiles!inner(username, full_name, avatar_url)
+        `)
+        .eq('content_id', contentId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!contentId,
+  });
+};
+
+// Get categories
+export const useCategories = () => {
+  return useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('sort_order', { ascending: true });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
 // Get featured content
 export const useFeaturedContent = () => {
   return useQuery({
