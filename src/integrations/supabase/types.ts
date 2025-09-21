@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -168,6 +201,7 @@ export type Database = {
           full_name: string | null
           id: string
           preferences: Json | null
+          role: Database["public"]["Enums"]["user_role"] | null
           subscription_plan: string | null
           updated_at: string
           user_id: string
@@ -179,6 +213,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           preferences?: Json | null
+          role?: Database["public"]["Enums"]["user_role"] | null
           subscription_plan?: string | null
           updated_at?: string
           user_id: string
@@ -190,6 +225,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           preferences?: Json | null
+          role?: Database["public"]["Enums"]["user_role"] | null
           subscription_plan?: string | null
           updated_at?: string
           user_id?: string
@@ -301,14 +337,52 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      reviews_with_profile: {
+        Row: {
+          avatar_url: string | null
+          comment: string | null
+          content_id: string | null
+          created_at: string | null
+          id: string | null
+          rating: number | null
+          updated_at: string | null
+          username: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      get_content_stats: {
+        Args: { content_uuid: string }
+        Returns: {
+          average_rating: number
+          total_favorites: number
+          total_ratings: number
+        }[]
+      }
+      get_user_recommendations: {
+        Args: { limit_count?: number; user_uuid: string }
+        Returns: {
+          average_rating: number
+          content_id: string
+          poster_url: string
+          similarity_score: number
+          title: string
+        }[]
+      }
     }
     Enums: {
       content_status: "draft" | "published" | "archived"
       content_type: "movie" | "series"
+      user_role: "user" | "admin" | "moderator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -438,6 +512,7 @@ export const Constants = {
     Enums: {
       content_status: ["draft", "published", "archived"],
       content_type: ["movie", "series"],
+      user_role: ["user", "admin", "moderator"],
     },
   },
 } as const
