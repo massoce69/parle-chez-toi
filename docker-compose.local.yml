@@ -8,27 +8,34 @@ services:
     container_name: massflix-local
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "80:80"      # Nginx frontend
+      - "3001:3001"  # API Node.js (optionnel, pour debug direct)
     volumes:
       # Base de données locale persistante
       - massflix_data:/data
       
       # Montage des datasets TrueNAS Scale
-      - /mnt/pool/datasets/movies:/media/movies:ro
-      - /mnt/pool/datasets/series:/media/series:ro
-      - /mnt/pool/datasets/posters:/media/posters:ro
-      - /mnt/pool/datasets/banners:/media/banners:ro
+      # ⚠️ ADAPTEZ CES CHEMINS selon votre configuration TrueNAS
+      - ${TRUENAS_MOVIES_PATH:-./demo-data/movies}:/media/movies:ro
+      - ${TRUENAS_SERIES_PATH:-./demo-data/series}:/media/series:ro
+      - ${TRUENAS_POSTERS_PATH:-./demo-data/posters}:/media/posters:ro
+      - ${TRUENAS_BANNERS_PATH:-./demo-data/banners}:/media/banners:ro
+      
+      # Logs pour débogage
+      - ./logs:/var/log/nginx
     environment:
       - NODE_ENV=production
       - JWT_SECRET=${JWT_SECRET:-massflix-secret-key-change-this}
       - MEDIA_PATH=/media
+      - DB_PATH=/data/massflix.db
     networks:
       - massflix-local-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/api/content"]
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
   # Scanner de médias local
   media-scanner-local:
@@ -38,15 +45,18 @@ services:
     container_name: massflix-scanner-local
     restart: unless-stopped
     volumes:
-      - /mnt/pool/datasets/movies:/media/movies:ro
-      - /mnt/pool/datasets/series:/media/series:ro
-      - /mnt/pool/datasets/posters:/media/posters:ro
-      - /mnt/pool/datasets/banners:/media/banners:ro
+      # Mêmes volumes que l'application principale
+      - ${TRUENAS_MOVIES_PATH:-./demo-data/movies}:/media/movies:ro
+      - ${TRUENAS_SERIES_PATH:-./demo-data/series}:/media/series:ro
+      - ${TRUENAS_POSTERS_PATH:-./demo-data/posters}:/media/posters:ro
+      - ${TRUENAS_BANNERS_PATH:-./demo-data/banners}:/media/banners:ro
     environment:
-      - MASSFLIX_API_URL=http://massflix-local:3001/api
+      - MASSFLIX_API_URL=http://massflix-local/api
       - MEDIA_PATH=/media
+      - SCAN_INTERVAL=${SCAN_INTERVAL:-3600}
     depends_on:
-      - massflix-local
+      massflix-local:
+        condition: service_healthy
     networks:
       - massflix-local-network
 
@@ -57,3 +67,7 @@ networks:
 volumes:
   massflix_data:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/data
