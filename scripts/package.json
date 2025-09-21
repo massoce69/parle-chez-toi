@@ -1,0 +1,9 @@
+{
+  "name": "massflix-scanner",
+  "version": "1.0.0",
+  "description": "Scanner automatique de médias pour Massflix",
+  "main": "media-scanner.js",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4"
+  }
+}

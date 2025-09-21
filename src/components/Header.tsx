@@ -18,7 +18,7 @@ export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { user, signOut } = useAuth();
-  const { data: profile } = useProfile(user?.id);
+  const { profile } = useProfile();
   const { toast } = useToast();
 
   const handleSignOut = async () => {

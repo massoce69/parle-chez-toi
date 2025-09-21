@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  massflix-app:
+    build: .
+    container_name: massflix
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      # Montage des datasets TrueNAS Scale
+      - /mnt/pool/datasets/movies:/media/movies:ro
+      - /mnt/pool/datasets/series:/media/series:ro
+      - /mnt/pool/datasets/posters:/media/posters:ro
+      - /mnt/pool/datasets/banners:/media/banners:ro
+      # Configuration Nginx (optionnel)
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    environment:
+      - NODE_ENV=production
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}
+      - VITE_SUPABASE_PROJECT_ID=${VITE_SUPABASE_PROJECT_ID}
+      - MEDIA_PATH=/media
+    networks:
+      - massflix-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Service optionnel pour scanner automatiquement les médias
+  media-scanner:
+    build:
+      context: .
+      dockerfile: Dockerfile.scanner
+    container_name: massflix-scanner
+    restart: unless-stopped
+    volumes:
+      - /mnt/pool/datasets/movies:/media/movies:ro
+      - /mnt/pool/datasets/series:/media/series:ro
+      - /mnt/pool/datasets/posters:/media/posters:ro
+      - /mnt/pool/datasets/banners:/media/banners:ro
+    environment:
+      - SUPABASE_URL=${VITE_SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - MEDIA_PATH=/media
+    depends_on:
+      - massflix-app
+    networks:
+      - massflix-network
+
+networks:
+  massflix-network:
+    driver: bridge
+
+volumes:
+  media_cache:
