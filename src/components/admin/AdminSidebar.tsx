@@ -26,7 +26,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useLocalAuth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 const adminMenuItems = [

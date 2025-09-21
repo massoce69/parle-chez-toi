@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MovieCard } from '@/components/MovieCard';
 import { Card, CardContent } from '@/components/ui/card';
-import { useAnalytics } from '@/hooks/useAnalytics';
+import { useAnalytics } from '@/hooks/useLocalAnalytics';
 import { Sparkles } from 'lucide-react';
 
 interface RecommendationsSectionProps {

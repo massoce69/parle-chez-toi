@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Search, Bell, User, Menu, X, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAuth } from "@/hooks/useAuth";
-import { useProfile } from "@/hooks/useProfile";
+import { useAuth } from "@/hooks/useLocalAuth";
+import { useProfile } from "@/hooks/useLocalProfile";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
@@ -24,20 +24,12 @@ export const Header = () => {
   const { hasAdminAccess } = useAdminAuth();
   const { toast } = useToast();
 
-  const handleSignOut = async () => {
-    const { error } = await signOut();
-    if (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de se déconnecter",
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Déconnexion réussie",
-        description: "À bientôt sur Massflix !",
-      });
-    }
+  const handleSignOut = () => {
+    signOut();
+    toast({
+      title: "Déconnexion réussie",
+      description: "À bientôt sur Massflix !",
+    });
   };
 
   return (

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MovieCard } from '@/components/MovieCard';
-import { useContentByGenre, useCategories } from '@/hooks/useContent';
+import { useContentByGenre, useCategories } from '@/hooks/useLocalContent';
 import { Film, Tv, Sparkles } from 'lucide-react';
 
 const Categories = () => {

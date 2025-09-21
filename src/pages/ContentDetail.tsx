@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useContentById, useContentReviews } from '@/hooks/useContent';
+import { useContentById, useContentReviews } from '@/hooks/useLocalContent';
 import { useFavorites } from '@/hooks/useFavorites';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { ReviewSection } from '@/components/ReviewSection';
 import { RecommendationsSection } from '@/components/RecommendationsSection';
 import { Play, Plus, Check, Star, Calendar, Clock } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useLocalAuth';
 
 const ContentDetail = () => {
   const { id } = useParams<{ id: string }>();

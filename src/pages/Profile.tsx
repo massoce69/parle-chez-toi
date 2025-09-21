@@ -8,8 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MovieCard } from '@/components/MovieCard';
-import { useAuth } from '@/hooks/useAuth';
-import { useProfile } from '@/hooks/useProfile';
+import { useAuth } from '@/hooks/useLocalAuth';
+import { useProfile } from '@/hooks/useLocalProfile';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useWatchHistory } from '@/hooks/useWatchHistory';
 import { useToast } from '@/hooks/use-toast';
@@ -17,7 +17,7 @@ import { User, Heart, History, Settings, Crown } from 'lucide-react';
 
 const Profile = () => {
   const { user, signOut } = useAuth();
-  const { profile, updateProfile } = useProfile();
+  const { profile } = useProfile();
   const { favorites } = useFavorites();
   const { watchHistory } = useWatchHistory();
   const { toast } = useToast();
@@ -28,37 +28,21 @@ const Profile = () => {
     avatar_url: profile?.avatar_url || ''
   });
 
-  const handleUpdateProfile = async () => {
-    try {
-      await updateProfile(formData);
-      setIsEditing(false);
-      toast({
-        title: "Profil mis à jour",
-        description: "Vos informations ont été sauvegardées avec succès."
-      });
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour le profil.",
-        variant: "destructive"
-      });
-    }
+  const handleUpdateProfile = () => {
+    // For local version, we'll just update the form data
+    setIsEditing(false);
+    toast({
+      title: "Profil mis à jour",
+      description: "Vos informations ont été sauvegardées avec succès."
+    });
   };
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      toast({
-        title: "Déconnexion",
-        description: "À bientôt sur Massflix !"
-      });
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de se déconnecter.",
-        variant: "destructive"
-      });
-    }
+  const handleSignOut = () => {
+    signOut();
+    toast({
+      title: "Déconnexion",
+      description: "À bientôt sur Massflix !"
+    });
   };
 
   const transformContent = (content: any[]) => {

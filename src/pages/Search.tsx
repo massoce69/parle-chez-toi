@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MovieCard } from '@/components/MovieCard';
-import { useSearchContent } from '@/hooks/useContent';
+import { useSearchContent } from '@/hooks/useLocalContent';
 import { Search as SearchIcon, Filter } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 

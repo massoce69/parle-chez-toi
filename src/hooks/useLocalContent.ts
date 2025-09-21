@@ -166,29 +166,28 @@ export const useWatchHistory = () => {
   };
 };
 
-// Aliases pour la compatibilité
-export const useAddToFavorites = () => {
-  return useMutation({
-    mutationFn: (contentId: string) => apiClient.addToFavorites(contentId),
+// For the local version, we'll add placeholder functions for useCategories and useContentReviews
+export const useCategories = () => {
+  return useQuery({
+    queryKey: ['categories'],
+    queryFn: () => Promise.resolve([]),
   });
 };
 
-export const useRemoveFromFavorites = () => {
-  return useMutation({
-    mutationFn: (contentId: string) => apiClient.removeFromFavorites(contentId),
+export const useContentReviews = (contentId: string) => {
+  return useQuery({
+    queryKey: ['reviews', contentId],
+    queryFn: () => Promise.resolve([]),
+    enabled: !!contentId,
   });
 };
 
-export const useAddToWatchHistory = () => {
-  return useMutation({
-    mutationFn: (params: { 
-      contentId: string; 
-      progressSeconds?: number; 
-      completed?: boolean 
-    }) => apiClient.addToWatchHistory(
-      params.contentId, 
-      params.progressSeconds, 
-      params.completed
-    ),
+export const useContentByGenre = (params: {
+  genre?: string;
+  contentType?: string;
+}) => {
+  return useQuery({
+    queryKey: ['content', 'genre', params],
+    queryFn: () => apiClient.getContent(params),
   });
 };
