@@ -10,6 +10,7 @@ export interface Profile {
   avatar_url?: string;
   subscription_plan: string;
   preferences: any;
+  role?: 'user' | 'admin' | 'moderator';
   created_at: string;
   updated_at: string;
 }

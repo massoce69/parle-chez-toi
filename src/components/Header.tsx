@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Search, Bell, User, Menu, X, LogOut } from "lucide-react";
+import { Search, Bell, User, Menu, X, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +21,7 @@ export const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
+  const { hasAdminAccess } = useAdminAuth();
   const { toast } = useToast();
 
   const handleSignOut = async () => {
@@ -99,6 +102,17 @@ export const Header = () => {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              {hasAdminAccess && (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin" className="flex items-center">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Panneau Admin</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuItem onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Se déconnecter</span>
