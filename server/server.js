@@ -15,6 +15,9 @@ app.use(cors());
 app.use(express.json());
 app.use('/media', express.static('/media'));
 
+// Servir le frontend React statique
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Base de données SQLite
 const dbPath = '/data/massflix.db';
 const db = new sqlite3.Database(dbPath);
@@ -405,10 +408,22 @@ app.post('/api/scan-media', authenticateToken, (req, res) => {
   );
 });
 
+// Route pour servir le frontend React (SPA routing)
+app.get('*', (req, res) => {
+  // Si c'est une route API, renvoyer 404
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Route API non trouvée' });
+  }
+  
+  // Sinon, servir index.html pour le routing côté client
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // Démarrage du serveur
 app.listen(PORT, () => {
-  console.log(`Serveur Massflix démarré sur le port ${PORT}`);
-  console.log(`Base de données: ${dbPath}`);
+  console.log(`🎬 Massflix Local démarré sur le port ${PORT}`);
+  console.log(`📊 Base de données: ${dbPath}`);
+  console.log(`🌍 Application accessible sur http://localhost:${PORT}`);
 });
 
 // Gestion propre de l'arrêt

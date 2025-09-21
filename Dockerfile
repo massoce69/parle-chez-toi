@@ -1,42 +1,54 @@
-# Multi-stage build pour optimiser l'image finale
-FROM node:18-alpine as builder
+# Dockerfile pour Massflix Local (sans nginx)
+FROM node:18-alpine AS frontend-build
 
 WORKDIR /app
 
-# Copier les fichiers de dépendances
+# Copier les fichiers de configuration
 COPY package*.json ./
-COPY bun.lockb ./
+COPY vite.config.local.ts vite.config.ts
+COPY tsconfig*.json ./
+COPY tailwind.config.ts ./
+COPY index.html ./
 
 # Installer les dépendances
-RUN npm ci --only=production
+RUN npm install
 
 # Copier le code source
-COPY . .
+COPY src/ ./src/
+COPY public/ ./public/
 
-# Build de l'application
+# Build du frontend
 RUN npm run build
 
-# Stage de production avec Nginx
-FROM nginx:alpine
+# Image de production
+FROM node:18-alpine
 
-# Installer les outils nécessaires
+WORKDIR /app
+
+# Installer les outils système nécessaires
 RUN apk add --no-cache curl
 
-# Copier la configuration nginx personnalisée
-COPY nginx.conf /etc/nginx/nginx.conf
+# Copier le serveur Node.js
+COPY server/ ./server/
+WORKDIR /app/server
+RUN npm install --production
 
-# Copier les fichiers buildés
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Copier le build frontend
+COPY --from=frontend-build /app/dist ./public
 
-# Créer les répertoires pour les médias
-RUN mkdir -p /media/movies /media/series /media/posters /media/banners
+# Copier les scripts
+COPY scripts/start-services.sh /app/start-services.sh
+RUN chmod +x /app/start-services.sh
+
+# Créer les répertoires nécessaires
+RUN mkdir -p /data /media/movies /media/series /media/posters /media/banners
 
 # Exposer le port
-EXPOSE 80
+EXPOSE 3001
 
-# Script de démarrage
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+# Variables d'environnement
+ENV NODE_ENV=production
+ENV PORT=3001
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["nginx", "-g", "daemon off;"]
+# Démarrer les services
+CMD ["/app/start-services.sh"]

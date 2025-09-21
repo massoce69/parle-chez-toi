@@ -4,12 +4,11 @@ services:
   massflix-local:
     build:
       context: .
-      dockerfile: Dockerfile.local
+      dockerfile: Dockerfile
     container_name: massflix-local
     restart: unless-stopped
     ports:
-      - "80:80"      # Nginx frontend
-      - "3001:3001"  # API Node.js (optionnel, pour debug direct)
+      - "3001:3001"  # Application Node.js + React
     volumes:
       # Base de données locale persistante
       - massflix_data:/data
@@ -20,18 +19,16 @@ services:
       - ${TRUENAS_SERIES_PATH:-./demo-data/series}:/media/series:ro
       - ${TRUENAS_POSTERS_PATH:-./demo-data/posters}:/media/posters:ro
       - ${TRUENAS_BANNERS_PATH:-./demo-data/banners}:/media/banners:ro
-      
-      # Logs pour débogage
-      - ./logs:/var/log/nginx
     environment:
       - NODE_ENV=production
       - JWT_SECRET=${JWT_SECRET:-massflix-secret-key-change-this}
       - MEDIA_PATH=/media
       - DB_PATH=/data/massflix.db
+      - PORT=3001
     networks:
       - massflix-local-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/content"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -51,7 +48,7 @@ services:
       - ${TRUENAS_POSTERS_PATH:-./demo-data/posters}:/media/posters:ro
       - ${TRUENAS_BANNERS_PATH:-./demo-data/banners}:/media/banners:ro
     environment:
-      - MASSFLIX_API_URL=http://massflix-local/api
+      - MASSFLIX_API_URL=http://massflix-local:3001/api
       - MEDIA_PATH=/media
       - SCAN_INTERVAL=${SCAN_INTERVAL:-3600}
     depends_on:

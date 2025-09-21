@@ -1,73 +1,142 @@
-# Welcome to your Lovable project
+# 🎬 Massflix Local
 
-## Project info
+**Version locale autonome de Massflix - Sans dépendances externes**
 
-**URL**: https://lovable.dev/projects/fbf59200-0a26-481c-a31a-933a5ef19d34
+Massflix Local est une version complètement autonome de la plateforme de streaming qui fonctionne entièrement sur votre serveur local sans avoir besoin de services externes comme Supabase.
 
-## How can I edit this code?
+## ✨ Fonctionnalités
 
-There are several ways of editing your application.
+- 🎥 **Streaming vidéo local** - Films et séries depuis vos dossiers
+- 🔐 **Authentification locale** - Comptes utilisateurs avec JWT
+- 📱 **Interface responsive** - Compatible mobile, tablette et desktop
+- 🎨 **Design moderne** - Interface utilisateur élégante
+- 👥 **Multi-utilisateurs** - Gestion des profils et rôles
+- 📊 **Administration** - Panneau d'admin pour gérer le contenu
+- 🔍 **Recherche avancée** - Trouvez vos contenus rapidement
+- ❤️ **Favoris** - Marquez vos contenus préférés
+- 📈 **Historique** - Suivez votre progression
+- 🤖 **Scanner automatique** - Détection automatique des nouveaux médias
 
-**Use Lovable**
+## 🚀 Démarrage rapide
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/fbf59200-0a26-481c-a31a-933a5ef19d34) and start prompting.
+### Prérequis
 
-Changes made via Lovable will be committed automatically to this repo.
+- Docker & Docker Compose
+- Node.js 18+ (pour le développement)
 
-**Use your preferred IDE**
+### Installation
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+1. **Cloner le projet**
+```bash
+git clone <votre-repo>
+cd massflix-local
 ```
 
-**Edit a file directly in GitHub**
+2. **Démarrer en mode développement**
+```bash
+chmod +x start-local.sh
+./start-local.sh dev
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+3. **Ou en mode production**
+```bash
+./start-local.sh prod
+```
 
-**Use GitHub Codespaces**
+### Accès
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- **Application** : http://localhost:3001
+- **Compte admin** : admin@massflix.local / admin123
 
-## What technologies are used for this project?
+## 📁 Structure des médias
 
-This project is built with:
+Organisez vos médias comme suit :
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```
+/media/
+├── movies/
+│   ├── Film 1 (2021)/
+│   │   ├── film1.mp4
+│   │   └── poster.jpg
+│   └── Film 2 (2022)/
+│       ├── film2.mkv
+│       └── poster.jpg
+├── series/
+│   ├── Serie 1/
+│   │   ├── Season 1/
+│   │   │   ├── S01E01.mp4
+│   │   │   └── S01E02.mp4
+│   │   └── poster.jpg
+│   └── Serie 2/
+│       ├── Season 1/
+│       │   ├── S01E01.mkv
+│       │   └── S01E02.mkv
+│       └── poster.jpg
+├── posters/
+└── banners/
+```
 
-## How can I deploy this project?
+## ⚙️ Configuration
 
-Simply open [Lovable](https://lovable.dev/projects/fbf59200-0a26-481c-a31a-933a5ef19d34) and click on Share -> Publish.
+Modifiez `.env.local` pour adapter à votre environnement :
 
-## Can I connect a custom domain to my Lovable project?
+```env
+# Chemins vers vos médias TrueNAS
+TRUENAS_MOVIES_PATH=/mnt/tank/media/movies
+TRUENAS_SERIES_PATH=/mnt/tank/media/series
+TRUENAS_POSTERS_PATH=/mnt/tank/media/posters
+TRUENAS_BANNERS_PATH=/mnt/tank/media/banners
 
-Yes, you can!
+# Sécurité
+JWT_SECRET=votre-secret-securise
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+# Scanner
+SCAN_INTERVAL=3600  # Scan toutes les heures
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 🔧 Commandes utiles
+
+```bash
+# Voir les logs
+docker-compose -f docker-compose.local.yml logs -f
+
+# Arrêter les services
+docker-compose -f docker-compose.local.yml down
+
+# Reconstruire les images
+docker-compose -f docker-compose.local.yml up --build
+
+# Accès au conteneur
+docker exec -it massflix-local sh
+```
+
+## 📋 Technologies utilisées
+
+- **Frontend** : React 18, TypeScript, Tailwind CSS
+- **Backend** : Node.js, Express
+- **Base de données** : SQLite
+- **Authentification** : JWT local
+- **Containerisation** : Docker
+
+## 🛡️ Sécurité
+
+- Authentification JWT locale
+- Hashage des mots de passe avec bcrypt
+- Validation des données côté serveur
+- Headers de sécurité configurés
+
+## 📦 Production
+
+Pour un déploiement en production :
+
+1. Modifiez le `JWT_SECRET` dans `.env.local`
+2. Configurez vos chemins de médias TrueNAS
+3. Lancez avec `./start-local.sh prod`
+4. Configurez la redirection sur votre routeur vers le port 3001
+
+## 🤝 Support
+
+Pour toute question ou problème, consultez les logs :
+```bash
+docker-compose -f docker-compose.local.yml logs -f massflix-local
+```

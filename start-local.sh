@@ -23,10 +23,26 @@ if ! command -v docker-compose &> /dev/null; then
 fi
 
 # Créer le fichier .env s'il n'existe pas
-if [ ! -f .env ]; then
-    echo "📝 Création du fichier .env..."
-    cp .env.local .env
-    echo "✏️  Pensez à adapter les valeurs dans .env selon votre environnement"
+if [ ! -f .env.local ]; then
+    echo "📝 Création du fichier .env.local..."
+    cat > .env.local << EOF
+# Configuration Massflix Local
+NODE_ENV=production
+JWT_SECRET=massflix-secret-key-change-this-in-production
+MEDIA_PATH=/media
+DB_PATH=/data/massflix.db
+PORT=3001
+
+# Chemins TrueNAS (à adapter selon votre configuration)
+TRUENAS_MOVIES_PATH=./demo-data/movies
+TRUENAS_SERIES_PATH=./demo-data/series
+TRUENAS_POSTERS_PATH=./demo-data/posters
+TRUENAS_BANNERS_PATH=./demo-data/banners
+
+# Scanner
+SCAN_INTERVAL=3600
+EOF
+    echo "✏️  Pensez à adapter les valeurs dans .env.local selon votre environnement"
 fi
 
 # Fonction de nettoyage
