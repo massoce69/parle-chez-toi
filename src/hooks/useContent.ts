@@ -155,17 +155,12 @@ export const useContentReviews = (contentId: string) => {
   return useQuery({
     queryKey: ['content-reviews', contentId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select(`
-          *,
-          profiles!inner(username, full_name, avatar_url)
-        `)
-        .eq('content_id', contentId)
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('get_reviews_with_profile', {
+        content_uuid: contentId
+      });
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!contentId,
   });

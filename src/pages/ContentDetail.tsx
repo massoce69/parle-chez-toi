@@ -220,7 +220,7 @@ const ContentDetail = () => {
           </TabsContent>
 
           <TabsContent value="reviews" className="space-y-6">
-            <ReviewSection contentId={content.id} reviews={reviews as any} />
+            <ReviewSection contentId={content.id} reviews={reviews} />
           </TabsContent>
 
           <TabsContent value="similar" className="space-y-6">

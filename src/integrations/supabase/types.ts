@@ -14,39 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      audit_log: {
-        Row: {
-          action: string
-          created_at: string | null
-          id: string
-          new_data: Json | null
-          old_data: Json | null
-          record_id: string | null
-          table_name: string
-          user_id: string | null
-        }
-        Insert: {
-          action: string
-          created_at?: string | null
-          id?: string
-          new_data?: Json | null
-          old_data?: Json | null
-          record_id?: string | null
-          table_name: string
-          user_id?: string | null
-        }
-        Update: {
-          action?: string
-          created_at?: string | null
-          id?: string
-          new_data?: Json | null
-          old_data?: Json | null
-          record_id?: string | null
-          table_name?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       categories: {
         Row: {
           created_at: string
@@ -337,69 +304,7 @@ export type Database = {
       }
     }
     Views: {
-      public_profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string | null
-          user_id: string | null
-          username: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string | null
-          user_id?: string | null
-          username?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string | null
-          user_id?: string | null
-          username?: string | null
-        }
-        Relationships: []
-      }
-      reviews_with_profile: {
-        Row: {
-          avatar_url: string | null
-          comment: string | null
-          content_id: string | null
-          created_at: string | null
-          id: string | null
-          rating: number | null
-          updated_at: string | null
-          username: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reviews_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "content"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      reviews_with_public_profile: {
-        Row: {
-          avatar_url: string | null
-          comment: string | null
-          content_id: string | null
-          created_at: string | null
-          id: string | null
-          rating: number | null
-          updated_at: string | null
-          username: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reviews_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "content"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       get_content_stats: {
@@ -408,6 +313,26 @@ export type Database = {
           average_rating: number
           total_favorites: number
           total_ratings: number
+        }[]
+      }
+      get_public_content_stats: {
+        Args: { content_uuid: string }
+        Returns: {
+          average_rating: number
+          total_reviews: number
+        }[]
+      }
+      get_reviews_with_profile: {
+        Args: { content_uuid: string }
+        Returns: {
+          avatar_url: string
+          comment: string
+          content_id: string
+          created_at: string
+          id: string
+          rating: number
+          updated_at: string
+          username: string
         }[]
       }
       get_user_recommendations: {
