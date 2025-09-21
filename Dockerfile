@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Copier les fichiers de configuration
 COPY package*.json ./
-COPY vite.config.local.ts vite.config.ts
+COPY vite.config.ts vite.config.ts
 COPY tsconfig*.json ./
 COPY tailwind.config.ts ./
 COPY index.html ./
