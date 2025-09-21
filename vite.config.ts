@@ -4,6 +4,7 @@ import path from "path";
 
 // Configuration pour la version locale
 export default defineConfig({
+  base: "/",
   server: {
     host: "::",
     port: 8080,
@@ -27,5 +28,10 @@ export default defineConfig({
   build: {
     outDir: "dist",
     assetsDir: "assets",
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
   },
 });
