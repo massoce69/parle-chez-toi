@@ -1,8 +1,8 @@
 import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
 import { MovieCarousel } from "@/components/MovieCarousel";
-import { useTrendingContent, useNewReleases, useContentByType } from "@/hooks/useContent";
-import { useAuth } from "@/hooks/useAuth";
+import { useTrendingContent, useNewReleases, useContentByType } from "@/hooks/useLocalContent";
+import { useAuth } from "@/hooks/useLocalAuth";
 
 const Index = () => {
   const { user } = useAuth();

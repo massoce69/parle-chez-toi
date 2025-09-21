@@ -1,0 +1,18 @@
+# Dockerfile pour le scanner de médias local
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Installer ffmpeg pour l'analyse des métadonnées vidéo
+RUN apk add --no-cache ffmpeg curl
+
+# Copier le script de scan local
+COPY scripts/local-media-scanner.js ./scanner.js
+COPY scripts/local-scanner-entrypoint.sh ./entrypoint.sh
+
+# Installer les dépendances nécessaires
+RUN npm init -y && npm install fs-extra
+
+RUN chmod +x ./entrypoint.sh
+
+CMD ["./entrypoint.sh"]

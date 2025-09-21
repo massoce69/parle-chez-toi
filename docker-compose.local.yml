@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  massflix-local:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+    container_name: massflix-local
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      # Base de données locale persistante
+      - massflix_data:/data
+      
+      # Montage des datasets TrueNAS Scale
+      - /mnt/pool/datasets/movies:/media/movies:ro
+      - /mnt/pool/datasets/series:/media/series:ro
+      - /mnt/pool/datasets/posters:/media/posters:ro
+      - /mnt/pool/datasets/banners:/media/banners:ro
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET:-massflix-secret-key-change-this}
+      - MEDIA_PATH=/media
+    networks:
+      - massflix-local-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/content"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Scanner de médias local
+  media-scanner-local:
+    build:
+      context: .
+      dockerfile: Dockerfile.scanner-local
+    container_name: massflix-scanner-local
+    restart: unless-stopped
+    volumes:
+      - /mnt/pool/datasets/movies:/media/movies:ro
+      - /mnt/pool/datasets/series:/media/series:ro
+      - /mnt/pool/datasets/posters:/media/posters:ro
+      - /mnt/pool/datasets/banners:/media/banners:ro
+    environment:
+      - MASSFLIX_API_URL=http://massflix-local:3001/api
+      - MEDIA_PATH=/media
+    depends_on:
+      - massflix-local
+    networks:
+      - massflix-local-network
+
+networks:
+  massflix-local-network:
+    driver: bridge
+
+volumes:
+  massflix_data:
+    driver: local

@@ -15,8 +15,8 @@ import Search from "./pages/Search";
 import Categories from "./pages/Categories";
 import Profile from "./pages/Profile";
 import ContentDetail from "./pages/ContentDetail";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminUsers from "./pages/admin/AdminUsers";
+import AdminDashboard from "./pages/admin/AdminDashboardLocal";
+import AdminUsers from "./pages/admin/AdminUsersLocal";
 
 const queryClient = new QueryClient();
 

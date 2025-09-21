@@ -1,5 +1,5 @@
-import { useAuth } from '@/hooks/useAuth';
-import { useProfile } from '@/hooks/useProfile';
+import { useAuth } from '@/hooks/useLocalAuth';
+import { useProfile } from '@/hooks/useLocalProfile';
 
 export const useAdminAuth = () => {
   const { user, loading: authLoading } = useAuth();
