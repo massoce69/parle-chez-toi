@@ -1,0 +1,342 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: massflix
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: massflix-secrets
+  namespace: massflix
+type: Opaque
+stringData:
+  jwt-secret: "massflix-truenas-change-this-secret-key"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: massflix-config
+  namespace: massflix
+data:
+  NODE_ENV: "production"
+  PORT: "3001"
+  MEDIA_PATH: "/media"
+  DB_PATH: "/data/massflix.db"
+  SCAN_INTERVAL: "3600"
+  MAX_FILE_SIZE: "5368709120"
+  RATE_LIMIT_REQUESTS: "100"
+  RATE_LIMIT_WINDOW: "15"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: massflix-data-pvc
+  namespace: massflix
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: "local-path"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: massflix-app
+  namespace: massflix
+  labels:
+    app: massflix
+    component: main
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: massflix
+      component: main
+  template:
+    metadata:
+      labels:
+        app: massflix
+        component: main
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      containers:
+      - name: massflix
+        image: massflix-truenas:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 3001
+          name: http
+          protocol: TCP
+        env:
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: massflix-secrets
+              key: jwt-secret
+        envFrom:
+        - configMapRef:
+            name: massflix-config
+        volumeMounts:
+        - name: data-storage
+          mountPath: /data
+        - name: movies-storage
+          mountPath: /media/movies
+          readOnly: true
+        - name: series-storage
+          mountPath: /media/series
+          readOnly: true
+        - name: posters-storage
+          mountPath: /media/posters
+          readOnly: true
+        - name: banners-storage
+          mountPath: /media/banners
+          readOnly: true
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /api/content
+            port: 3001
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/content
+            port: 3001
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+      volumes:
+      - name: data-storage
+        persistentVolumeClaim:
+          claimName: massflix-data-pvc
+      - name: movies-storage
+        hostPath:
+          path: /mnt/pool1/massflix/movies
+          type: DirectoryOrCreate
+      - name: series-storage
+        hostPath:
+          path: /mnt/pool1/massflix/series
+          type: DirectoryOrCreate
+      - name: posters-storage
+        hostPath:
+          path: /mnt/pool1/massflix/posters
+          type: DirectoryOrCreate
+      - name: banners-storage
+        hostPath:
+          path: /mnt/pool1/massflix/banners
+          type: DirectoryOrCreate
+      restartPolicy: Always
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: massflix-scanner
+  namespace: massflix
+  labels:
+    app: massflix
+    component: scanner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: massflix
+      component: scanner
+  template:
+    metadata:
+      labels:
+        app: massflix
+        component: scanner
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      containers:
+      - name: media-scanner
+        image: massflix-scanner-truenas:latest
+        imagePullPolicy: Never
+        env:
+        - name: MASSFLIX_API_URL
+          value: "http://massflix-service:3001/api"
+        - name: MEDIA_PATH
+          value: "/media"
+        - name: SCAN_INTERVAL
+          valueFrom:
+            configMapKeyRef:
+              name: massflix-config
+              key: SCAN_INTERVAL
+        volumeMounts:
+        - name: movies-storage
+          mountPath: /media/movies
+          readOnly: true
+        - name: series-storage
+          mountPath: /media/series
+          readOnly: true
+        - name: posters-storage
+          mountPath: /media/posters
+          readOnly: true
+        - name: banners-storage
+          mountPath: /media/banners
+          readOnly: true
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+      volumes:
+      - name: movies-storage
+        hostPath:
+          path: /mnt/pool1/massflix/movies
+          type: DirectoryOrCreate
+      - name: series-storage
+        hostPath:
+          path: /mnt/pool1/massflix/series
+          type: DirectoryOrCreate
+      - name: posters-storage
+        hostPath:
+          path: /mnt/pool1/massflix/posters
+          type: DirectoryOrCreate
+      - name: banners-storage
+        hostPath:
+          path: /mnt/pool1/massflix/banners
+          type: DirectoryOrCreate
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: massflix-service
+  namespace: massflix
+  labels:
+    app: massflix
+    component: main
+spec:
+  type: NodePort
+  ports:
+  - port: 3001
+    targetPort: 3001
+    nodePort: 30001
+    protocol: TCP
+    name: http
+  selector:
+    app: massflix
+    component: main
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: massflix-network-policy
+  namespace: massflix
+spec:
+  podSelector:
+    matchLabels:
+      app: massflix
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector: {}
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 3001
+  egress:
+  - {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: massflix-app-config
+  namespace: massflix
+data:
+  app.yaml: |
+    # Configuration TrueNAS Scale pour Massflix
+    # Streaming Media Server Local
+    
+    name: massflix
+    version: "1.0.0"
+    description: "Serveur de streaming vidéo local pour TrueNAS Scale"
+    
+    # Configuration des ressources
+    resources:
+      limits:
+        memory: "1.5Gi"
+        cpu: "1000m"
+      requests:
+        memory: "512Mi"
+        cpu: "200m"
+    
+    # Configuration des volumes requis
+    volumes:
+      data:
+        type: "pvc"
+        size: "10Gi"
+        description: "Base de données et cache"
+      movies:
+        type: "hostPath"
+        path: "/mnt/pool1/massflix/movies"
+        readOnly: true
+        description: "Films"
+      series:
+        type: "hostPath" 
+        path: "/mnt/pool1/massflix/series"
+        readOnly: true
+        description: "Séries TV"
+      posters:
+        type: "hostPath"
+        path: "/mnt/pool1/massflix/posters"
+        readOnly: true
+        description: "Affiches"
+      banners:
+        type: "hostPath"
+        path: "/mnt/pool1/massflix/banners"
+        readOnly: true
+        description: "Bannières"
+    
+    # Configuration réseau
+    networking:
+      port: 3001
+      nodePort: 30001
+      type: "NodePort"
+    
+    # Sécurité
+    security:
+      runAsUser: 1000
+      runAsGroup: 1000
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false

@@ -1,0 +1,192 @@
+# Default values for massflix
+# This is a YAML-formatted file.
+
+## Massflix Configuration
+massflix:
+  # Application settings
+  name: massflix
+  version: "1.0.0"
+  
+  # Security settings - CHANGE IN PRODUCTION!
+  jwtSecret: "massflix-truenas-change-this-secret"
+  
+  # Media scanning interval (seconds)
+  scanInterval: 3600
+  
+  # Performance limits
+  maxFileSize: 5368709120  # 5GB
+  rateLimitRequests: 100
+  rateLimitWindow: 15
+
+## Docker Images
+image:
+  repository: massflix-truenas
+  tag: latest
+  pullPolicy: Never
+  
+scanner:
+  repository: massflix-scanner-truenas
+  tag: latest
+  pullPolicy: Never
+
+## Service Configuration
+service:
+  type: NodePort
+  port: 3001
+  nodePort: 30001
+  annotations: {}
+
+## Ingress (optionnel pour reverse proxy)
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: massflix.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+## Persistence Configuration
+persistence:
+  # Base de données et cache
+  data:
+    enabled: true
+    storageClass: "local-path"
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    annotations: {}
+
+## Host Volumes (TrueNAS Datasets)
+volumes:
+  movies:
+    enabled: true
+    hostPath: "/mnt/pool1/massflix/movies"
+    readOnly: true
+  series:
+    enabled: true
+    hostPath: "/mnt/pool1/massflix/series"
+    readOnly: true
+  posters:
+    enabled: true
+    hostPath: "/mnt/pool1/massflix/posters"
+    readOnly: true
+  banners:
+    enabled: true
+    hostPath: "/mnt/pool1/massflix/banners"
+    readOnly: true
+
+## Resource Management
+resources:
+  # Application principale
+  app:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  
+  # Scanner médias
+  scanner:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+## Autoscaling (optionnel)
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+## Security Context
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  runAsNonRoot: true
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+## Health Checks
+healthchecks:
+  liveness:
+    enabled: true
+    path: /api/content
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+  
+  readiness:
+    enabled: true
+    path: /api/content
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+## Network Policies
+networkPolicy:
+  enabled: true
+  ingress:
+    enabled: true
+  egress:
+    enabled: true
+
+## ServiceAccount
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+## Pod Annotations
+podAnnotations: {}
+
+## Pod Security Context
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+## Node Selection
+nodeSelector: {}
+
+## Tolerations
+tolerations: []
+
+## Affinity Rules
+affinity: {}
+
+## Environment Variables
+env:
+  - name: NODE_ENV
+    value: "production"
+  - name: PORT
+    value: "3001"
+  - name: MEDIA_PATH
+    value: "/media"
+  - name: DB_PATH
+    value: "/data/massflix.db"
+
+## Extra Environment Variables from ConfigMap
+envFromConfigMap: {}
+
+## Extra Environment Variables from Secret
+envFromSecret: {}
+
+## Pod Disruption Budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1

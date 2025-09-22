@@ -1,0 +1,24 @@
+apiVersion: v2
+name: massflix
+description: Media streaming server optimized for TrueNAS Scale
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+home: https://github.com/massflix/massflix
+maintainers:
+  - name: Massflix Team
+    email: support@massflix.local
+keywords:
+  - media
+  - streaming
+  - video
+  - movies
+  - series
+  - plex-alternative
+  - truenas
+sources:
+  - https://github.com/massflix/massflix
+annotations:
+  category: Media
+  truenas.scale.app: "true"
+  truenas.scale.min-version: "24.04"

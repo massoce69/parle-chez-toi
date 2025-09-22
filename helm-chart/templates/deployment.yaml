@@ -1,0 +1,228 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "massflix.fullname" . }}-app
+  labels:
+    {{- include "massflix.labels" . | nindent 4 }}
+    component: app
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: 1
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "massflix.selectorLabels" . | nindent 6 }}
+      component: app
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "massflix.selectorLabels" . | nindent 8 }}
+        component: app
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "massflix.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: massflix
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          env:
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "massflix.fullname" . }}-secrets
+                  key: jwt-secret
+            - name: SCAN_INTERVAL
+              value: "{{ .Values.massflix.scanInterval }}"
+            - name: MAX_FILE_SIZE
+              value: "{{ .Values.massflix.maxFileSize }}"
+            - name: RATE_LIMIT_REQUESTS
+              value: "{{ .Values.massflix.rateLimitRequests }}"
+            - name: RATE_LIMIT_WINDOW
+              value: "{{ .Values.massflix.rateLimitWindow }}"
+            {{- range .Values.env }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+          {{- if .Values.healthchecks.liveness.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.healthchecks.liveness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.healthchecks.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthchecks.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthchecks.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthchecks.liveness.failureThreshold }}
+          {{- end }}
+          {{- if .Values.healthchecks.readiness.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.healthchecks.readiness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.healthchecks.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthchecks.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthchecks.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthchecks.readiness.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources.app | nindent 12 }}
+          volumeMounts:
+            - name: data-storage
+              mountPath: /data
+            {{- if .Values.volumes.movies.enabled }}
+            - name: movies-storage
+              mountPath: /media/movies
+              readOnly: {{ .Values.volumes.movies.readOnly }}
+            {{- end }}
+            {{- if .Values.volumes.series.enabled }}
+            - name: series-storage
+              mountPath: /media/series
+              readOnly: {{ .Values.volumes.series.readOnly }}
+            {{- end }}
+            {{- if .Values.volumes.posters.enabled }}
+            - name: posters-storage
+              mountPath: /media/posters
+              readOnly: {{ .Values.volumes.posters.readOnly }}
+            {{- end }}
+            {{- if .Values.volumes.banners.enabled }}
+            - name: banners-storage
+              mountPath: /media/banners
+              readOnly: {{ .Values.volumes.banners.readOnly }}
+            {{- end }}
+      volumes:
+        - name: data-storage
+          persistentVolumeClaim:
+            claimName: {{ include "massflix.fullname" . }}-data-pvc
+        {{- if .Values.volumes.movies.enabled }}
+        - name: movies-storage
+          hostPath:
+            path: {{ .Values.volumes.movies.hostPath }}
+            type: DirectoryOrCreate
+        {{- end }}
+        {{- if .Values.volumes.series.enabled }}
+        - name: series-storage
+          hostPath:
+            path: {{ .Values.volumes.series.hostPath }}
+            type: DirectoryOrCreate
+        {{- end }}
+        {{- if .Values.volumes.posters.enabled }}
+        - name: posters-storage
+          hostPath:
+            path: {{ .Values.volumes.posters.hostPath }}
+            type: DirectoryOrCreate
+        {{- end }}
+        {{- if .Values.volumes.banners.enabled }}
+        - name: banners-storage
+          hostPath:
+            path: {{ .Values.volumes.banners.hostPath }}
+            type: DirectoryOrCreate
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "massflix.fullname" . }}-scanner
+  labels:
+    {{- include "massflix.labels" . | nindent 4 }}
+    component: scanner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "massflix.selectorLabels" . | nindent 6 }}
+      component: scanner
+  template:
+    metadata:
+      labels:
+        {{- include "massflix.selectorLabels" . | nindent 8 }}
+        component: scanner
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: scanner
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.scanner.repository }}:{{ .Values.scanner.tag }}"
+          imagePullPolicy: {{ .Values.scanner.pullPolicy }}
+          env:
+            - name: MASSFLIX_API_URL
+              value: "http://{{ include "massflix.fullname" . }}-service:{{ .Values.service.port }}/api"
+            - name: MEDIA_PATH
+              value: "/media"
+            - name: SCAN_INTERVAL
+              value: "{{ .Values.massflix.scanInterval }}"
+          resources:
+            {{- toYaml .Values.resources.scanner | nindent 12 }}
+          volumeMounts:
+            {{- if .Values.volumes.movies.enabled }}
+            - name: movies-storage
+              mountPath: /media/movies
+              readOnly: true
+            {{- end }}
+            {{- if .Values.volumes.series.enabled }}
+            - name: series-storage
+              mountPath: /media/series
+              readOnly: true
+            {{- end }}
+            {{- if .Values.volumes.posters.enabled }}
+            - name: posters-storage
+              mountPath: /media/posters
+              readOnly: true
+            {{- end }}
+            {{- if .Values.volumes.banners.enabled }}
+            - name: banners-storage
+              mountPath: /media/banners
+              readOnly: true
+            {{- end }}
+      volumes:
+        {{- if .Values.volumes.movies.enabled }}
+        - name: movies-storage
+          hostPath:
+            path: {{ .Values.volumes.movies.hostPath }}
+            type: DirectoryOrCreate
+        {{- end }}
+        {{- if .Values.volumes.series.enabled }}
+        - name: series-storage
+          hostPath:
+            path: {{ .Values.volumes.series.hostPath }}
+            type: DirectoryOrCreate
+        {{- end }}
+        {{- if .Values.volumes.posters.enabled }}
+        - name: posters-storage
+          hostPath:
+            path: {{ .Values.volumes.posters.hostPath }}
+            type: DirectoryOrCreate
+        {{- end }}
+        {{- if .Values.volumes.banners.enabled }}
+        - name: banners-storage
+          hostPath:
+            path: {{ .Values.volumes.banners.hostPath }}
+            type: DirectoryOrCreate
+        {{- end }}
