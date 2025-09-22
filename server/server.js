@@ -5,14 +5,57 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const fs = require('fs-extra');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const validator = require('validator');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const JWT_SECRET = process.env.JWT_SECRET || 'massflix-secret-key';
+// Generate secure JWT secret if not provided
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
+
+// Generate secure admin password
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || crypto.randomBytes(16).toString('hex');
+
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      fontSrc: ["'self'"],
+      connectSrc: ["'self'"]
+    }
+  }
+}));
+
+// Rate limiting
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per window
+  message: { error: 'Too many authentication attempts. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per window
+  message: { error: 'Too many requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiting
+app.use('/api/auth', authLimiter);
+app.use('/api', generalLimiter);
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use('/media', express.static('/media'));
 
 // Servir le frontend React statique
@@ -97,18 +140,38 @@ db.serialize(() => {
     FOREIGN KEY (content_id) REFERENCES content (id)
   )`);
 
-  // Utilisateur admin par défaut
+  // Créer un utilisateur admin par défaut avec mot de passe sécurisé
   const adminEmail = 'admin@massflix.local';
-  const adminPassword = bcrypt.hashSync('admin123', 10);
+  const hashedAdminPassword = bcrypt.hashSync(ADMIN_PASSWORD, 12);
   
   db.get("SELECT id FROM users WHERE email = ?", [adminEmail], (err, row) => {
     if (!row) {
       db.run(`INSERT INTO users (email, password, username, full_name, role) 
               VALUES (?, ?, ?, ?, ?)`, 
-              [adminEmail, adminPassword, 'admin', 'Administrateur', 'admin']);
+              [adminEmail, hashedAdminPassword, 'admin', 'Administrateur', 'admin'], function(err) {
+        if (err) {
+          console.error('Erreur création utilisateur admin:', err.message);
+        } else {
+          console.log('✅ Utilisateur admin créé');
+          console.log('📧 Email: admin@massflix.local');
+          console.log('🔐 Mot de passe:', ADMIN_PASSWORD);
+          console.log('⚠️  CHANGEZ CE MOT DE PASSE lors de la première connexion!');
+        }
+      });
     }
   });
 });
+
+// Input validation middleware
+function validateInput(req, res, next) {
+  // Sanitize all string inputs
+  for (const [key, value] of Object.entries(req.body)) {
+    if (typeof value === 'string') {
+      req.body[key] = validator.escape(value.trim());
+    }
+  }
+  next();
+}
 
 // Middleware d'authentification
 const authenticateToken = (req, res, next) => {
@@ -129,11 +192,24 @@ const authenticateToken = (req, res, next) => {
 };
 
 // Routes d'authentification
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', validateInput, async (req, res) => {
   const { email, password, username, fullName } = req.body;
 
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email et mot de passe requis' });
+    }
+    
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ error: 'Format d\'email invalide' });
+    }
+    
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 8 caractères' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
     
     db.run(
       `INSERT INTO users (email, password, username, full_name) VALUES (?, ?, ?, ?)`,
@@ -143,31 +219,43 @@ app.post('/api/auth/register', async (req, res) => {
           if (err.message.includes('UNIQUE constraint failed')) {
             return res.status(400).json({ error: 'Email déjà utilisé' });
           }
-          return res.status(500).json({ error: err.message });
+          console.error('User creation error:', err);
+          return res.status(500).json({ error: 'Erreur lors de la création du compte' });
         }
         
-        const token = jwt.sign({ id: this.lastID, email }, JWT_SECRET);
+        const token = jwt.sign({ id: this.lastID, email }, JWT_SECRET, { expiresIn: '24h' });
         res.json({ token, user: { id: this.lastID, email, username, fullName } });
       }
     );
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', validateInput, async (req, res) => {
   const { email, password } = req.body;
+
+  // Validate input
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email et mot de passe requis' });
+  }
+  
+  if (!validator.isEmail(email)) {
+    return res.status(400).json({ error: 'Format d\'email invalide' });
+  }
 
   db.get("SELECT * FROM users WHERE email = ?", [email], async (err, user) => {
     if (err) {
-      return res.status(500).json({ error: err.message });
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Erreur serveur' });
     }
     
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET);
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
     const { password: _, ...userWithoutPassword } = user;
     res.json({ token, user: userWithoutPassword });
   });
@@ -179,27 +267,32 @@ app.get('/api/content', (req, res) => {
   let query = "SELECT * FROM content WHERE status = 'published'";
   const params = [];
 
-  if (type) {
+  // Validate and sanitize inputs
+  if (type && validator.isAlphanumeric(type, 'en-US', { ignore: '_' })) {
     query += " AND content_type = ?";
     params.push(type);
   }
 
-  if (genre) {
+  if (genre && typeof genre === 'string' && genre.length <= 50) {
     query += " AND genres LIKE ?";
-    params.push(`%${genre}%`);
+    params.push(`%${validator.escape(genre)}%`);
   }
 
-  if (search) {
+  if (search && typeof search === 'string' && search.length <= 100) {
+    const sanitizedSearch = validator.escape(search);
     query += " AND (title LIKE ? OR description LIKE ?)";
-    params.push(`%${search}%`, `%${search}%`);
+    params.push(`%${sanitizedSearch}%`, `%${sanitizedSearch}%`);
   }
 
+  // Validate limit
+  const validLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
   query += " ORDER BY created_at DESC LIMIT ?";
-  params.push(parseInt(limit));
+  params.push(validLimit);
 
   db.all(query, params, (err, rows) => {
     if (err) {
-      return res.status(500).json({ error: err.message });
+      console.error('Content query error:', err);
+      return res.status(500).json({ error: 'Erreur serveur' });
     }
     
     // Transformer les données pour correspondre au format attendu
@@ -378,10 +471,13 @@ app.post('/api/watch-history', authenticateToken, (req, res) => {
 
 // Scanner de médias - Route sécurisée pour le scanner interne
 app.post('/api/scan-media', (req, res) => {
-  // Vérifier que la requête vient du scanner interne (même réseau Docker)
-  const clientIP = req.ip || req.connection.remoteAddress;
-  if (!clientIP.includes('172.20.') && !clientIP.includes('127.0.0.1') && !clientIP.includes('::1')) {
-    return res.status(403).json({ error: 'Accès non autorisé' });
+  // Vérifier l'authentification du scanner via API key
+  const apiKey = req.headers['x-scanner-api-key'];
+  const expectedApiKey = process.env.SCANNER_API_KEY || crypto.createHash('sha256').update(JWT_SECRET + 'scanner').digest('hex');
+  
+  if (!apiKey || apiKey !== expectedApiKey) {
+    console.warn('Unauthorized scanner access attempt from:', req.ip);
+    return res.status(403).json({ error: 'Clé API invalide' });
   }
   // Cette route sera appelée par le script de scan pour ajouter du contenu
   const content = req.body;
