@@ -12,7 +12,7 @@ const Login = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement authentication logic with Supabase
+    // TODO: Implement authentication with local API
     console.log("Login attempt:", { email, password });
   };
 

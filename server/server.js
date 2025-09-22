@@ -376,8 +376,13 @@ app.post('/api/watch-history', authenticateToken, (req, res) => {
   );
 });
 
-// Scanner de médias
-app.post('/api/scan-media', authenticateToken, (req, res) => {
+// Scanner de médias - Route sécurisée pour le scanner interne
+app.post('/api/scan-media', (req, res) => {
+  // Vérifier que la requête vient du scanner interne (même réseau Docker)
+  const clientIP = req.ip || req.connection.remoteAddress;
+  if (!clientIP.includes('172.20.') && !clientIP.includes('127.0.0.1') && !clientIP.includes('::1')) {
+    return res.status(403).json({ error: 'Accès non autorisé' });
+  }
   // Cette route sera appelée par le script de scan pour ajouter du contenu
   const content = req.body;
   

@@ -1,0 +1,141 @@
+version: '3.8'
+
+services:
+  massflix:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: massflix-truenas
+    restart: unless-stopped
+    
+    # Configuration réseau sécurisée
+    ports:
+      - "3001:3001"
+    
+    # Volumes optimisés pour TrueNAS
+    volumes:
+      # Base de données persistante
+      - type: bind
+        source: /mnt/pool1/massflix/data
+        target: /data
+        bind:
+          create_host_path: true
+      
+      # Médias en lecture seule pour sécurité
+      - type: bind
+        source: /mnt/pool1/massflix/movies
+        target: /media/movies
+        read_only: true
+      
+      - type: bind
+        source: /mnt/pool1/massflix/series
+        target: /media/series
+        read_only: true
+      
+      - type: bind
+        source: /mnt/pool1/massflix/posters
+        target: /media/posters
+        read_only: true
+      
+      - type: bind
+        source: /mnt/pool1/massflix/banners
+        target: /media/banners
+        read_only: true
+    
+    # Variables d'environnement sécurisées
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET:-massflix-truenas-$(openssl rand -hex 32)}
+      - MEDIA_PATH=/media
+      - DB_PATH=/data/massflix.db
+      - PORT=3001
+      - SCAN_INTERVAL=${SCAN_INTERVAL:-3600}
+      - MAX_FILE_SIZE=5368709120
+      - RATE_LIMIT_REQUESTS=100
+      - RATE_LIMIT_WINDOW=15
+    
+    # Limites de ressources pour TrueNAS
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+    
+    # Sécurité renforcée
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=100M,noexec,nosuid,nodev
+      - /var/run:size=50M,noexec,nosuid,nodev
+    
+    # Health check avancé
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/content"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    networks:
+      - massflix-secure
+
+  # Scanner de médias optimisé
+  media-scanner:
+    build:
+      context: .
+      dockerfile: Dockerfile.scanner-local
+    container_name: massflix-scanner-truenas
+    restart: unless-stopped
+    
+    volumes:
+      - type: bind
+        source: /mnt/pool1/massflix/movies
+        target: /media/movies
+        read_only: true
+      
+      - type: bind
+        source: /mnt/pool1/massflix/series
+        target: /media/series
+        read_only: true
+      
+      - type: bind
+        source: /mnt/pool1/massflix/posters
+        target: /media/posters
+        read_only: true
+      
+      - type: bind
+        source: /mnt/pool1/massflix/banners
+        target: /media/banners
+        read_only: true
+    
+    environment:
+      - MASSFLIX_API_URL=http://massflix:3001/api
+      - MEDIA_PATH=/media
+      - SCAN_INTERVAL=${SCAN_INTERVAL:-3600}
+    
+    depends_on:
+      massflix:
+        condition: service_healthy
+    
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.2'
+    
+    security_opt:
+      - no-new-privileges:true
+    
+    networks:
+      - massflix-secure
+
+networks:
+  massflix-secure:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
